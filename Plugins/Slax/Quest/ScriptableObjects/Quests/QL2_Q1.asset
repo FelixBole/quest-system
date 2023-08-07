@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14c5356932dff4300ad56c1f84163e6c, type: 3}
+  m_Name: QL2_Q1
+  m_EditorClassIdentifier: 
+  _name: A strange stone
+  _description: '"I saw a weirg looking stone in the mountains, and when I approached
+    it, I thought I heard a voice coming from inside it. I ran away... Could you
+    investigate it?"'
+  _steps:
+  - {fileID: 11400000, guid: e840f4e80014b0c45abbeecee55bbaf0, type: 2}
+  - {fileID: 11400000, guid: ef42e0618295ce84a8fb1dbfb1793e0a, type: 2}
