@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -37,7 +35,6 @@ namespace Slax.QuestSystem
         /// to complete it again.
         /// </summary>
         public UnityEvent<QuestStepSO> OnStepAlreadyValidated;
-
 
         /// <summary>
         /// Event fired when a step is validated. It is worth noting that

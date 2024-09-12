@@ -1,9 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using System;
-using Slax.Utilities;
 
 namespace Slax.QuestSystem
 {
@@ -12,30 +10,52 @@ namespace Slax.QuestSystem
     /// </summary>
     public class QuestManager : MonoBehaviour
     {
-        [Tooltip("This references a class that holds the List of quest lines to be able to use the JsonUtility to convert it to JSON")]
-        [SerializeField] private List<QuestLineSO> _questLines = new List<QuestLineSO>();
+        [SerializeField, Tooltip("The game's quest lines.")] protected List<QuestLineSO> _questLines = new List<QuestLineSO>();
 
         /// <summary>List of all quest lines in the game</summary>
         public List<QuestLineSO> QuestLines => _questLines;
 
-        [SerializeField] private SaveType _saveType;
-        [SerializeField] private ReturnType _returnType;
-        [SerializeField] private string _saveFileName = "quests.savegame";
+        [SerializeField] protected SaveType _saveType;
+        [SerializeField] protected ReturnType _returnType;
+        [SerializeField] protected string _saveFileName = "quests.savegame";
 
         public SaveType SaveType => _saveType;
         public ReturnType ReturnType => _returnType;
 
+        /// <summary>
+        /// Event fired when a step is started. The QuestEventInfo will hold the appropriate info to know if it is a Quest start
+        /// or a QuestLine start for any listener to process
+        /// </summary>
         public UnityAction<QuestEventInfo> OnStepStart = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is completed but the quest is not completed yet
+        /// </summary>
         public UnityAction<QuestEventInfo> OnStepComplete = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is completed, completing the associated Quest and QuestLine with it
+        /// </summary>
         public UnityAction<QuestEventInfo> OnQuestComplete = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is completed, completing the associated Quest and QuestLine with it
+        /// </summary>
         public UnityAction<QuestEventInfo> OnQuestLineComplete = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is started but there are some missing step requirements
+        /// </summary>
         public UnityAction<List<QuestEventInfo>> OnMissingRequirements = delegate { };
 
-        public static QuestManager Instance { get; private set; }
+        /// <summary>
+        /// Singleton instance of the QuestManager
+        /// </summary>
+        public static QuestManager Instance { get; protected set; }
 
         #region MonoBehaviour
 
-        private void Awake()
+        protected virtual void Awake()
         {
             if (Instance != null)
             {
@@ -54,7 +74,7 @@ namespace Slax.QuestSystem
                 if (!fileExisted)
                 {
                     ResetAllQuests();
-                    Debug.Log($"Quests save file at {_saveFileName} did not exist. Quest Manager is set to default values.");
+                    Log($"Quests save file at {_saveFileName} did not exist. Quest Manager is set to default values.");
                     SubscribeToQuestEvents();
                 }
                 else
@@ -63,7 +83,7 @@ namespace Slax.QuestSystem
                 }
             }
         }
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
             foreach (QuestLineSO questLine in _questLines)
             {
@@ -82,19 +102,24 @@ namespace Slax.QuestSystem
         #region Setup And Initialization
 
         /// <summary>
-        /// Sets up the Quest Manager from the save data when using json data such as <example>{"DoneQuestSteps":["QL1_Q1_S1","QL1_Q1_S2","QL1_Q2_S1"]}</example>
+        /// Sets up the Quest Manager from the save data when using json data such as 
+        /// <para>
+        /// <example>{"Steps":["QL1_Q1_S1","QL1_Q1_S2","QL1_Q2_S1"]}</example>
+        /// </para>
         /// </summary>
-        public void Initialize(string jsonData)
+        public virtual void Initialize(string jsonData)
         {
             SaveData save = JsonUtility.FromJson<SaveData>(jsonData);
-            Debug.Log(save);
+            Log(save);
             Initialize(save.Steps);
         }
 
         /// <summary>
-        /// Initializes the Quest Manager with save data when using List<string> saved data
+        /// Initializes the Quest Manager with save data when using List<string> saved data.
+        /// Basically runs through all scriptable objects in the questlines and sets the state
+        /// of the steps to the saved state.
         /// </summary>
-        public void Initialize(List<SavedStep> savedSteps)
+        public virtual void Initialize(List<SavedStep> savedSteps)
         {
             // Start by resetting all data
             ResetAllQuests();
@@ -114,7 +139,7 @@ namespace Slax.QuestSystem
         }
 
         /// <summary>Subscribes to essential events fired by quests and questlines</summary>
-        private void SubscribeToQuestEvents()
+        protected virtual void SubscribeToQuestEvents()
         {
             foreach (QuestLineSO questLine in _questLines)
             {
@@ -143,7 +168,7 @@ namespace Slax.QuestSystem
         /// <summary>
         /// Resets all Quest Steps to false before loading in save data
         /// </summary>
-        private void ResetAllQuests()
+        protected virtual void ResetAllQuests()
         {
             foreach (QuestLineSO questLine in _questLines)
             {
@@ -166,7 +191,8 @@ namespace Slax.QuestSystem
         /// attemps to start but there are some missing step
         /// requirements.
         ///</summary>
-        private void HandleMissingRequirementsEvent(List<QuestStepSO> requirements)
+        ///<param name="requirements">The list of requirements that are missing</param>
+        protected virtual void HandleMissingRequirementsEvent(List<QuestStepSO> requirements)
         {
             List<QuestEventInfo> eventInfoRequirements = new List<QuestEventInfo>();
             foreach (QuestStepSO requirement in requirements)
@@ -183,7 +209,8 @@ namespace Slax.QuestSystem
         /// appropriate info to know if it is a Quest start
         /// or a QuestLine start for any listener to process
         /// </summary>
-        private void HandleStepStartEvent(QuestStepSO step)
+        /// <param name="step">The step that was started</param>
+        protected virtual void HandleStepStartEvent(QuestStepSO step)
         {
             step.OnStarted -= HandleStepStartEvent;
             QuestEventInfo eventInfo = PrepareQuestEventInfo(step);
@@ -194,7 +221,9 @@ namespace Slax.QuestSystem
         /// Handles the event fired from a Quest whenever a step
         /// is completed but the quest is not completed yet
         /// </summary>
-        private void HandleStepCompletedEvent(QuestSO quest, QuestStepSO step)
+        /// <param name="quest">The quest that the step belongs to</param>
+        /// <param name="step">The step that was completed</param>
+        protected virtual void HandleStepCompletedEvent(QuestSO quest, QuestStepSO step)
         {
             quest.OnProgress -= HandleStepCompletedEvent;
             QuestEventInfo eventInfo = PrepareQuestEventInfo(step);
@@ -206,7 +235,10 @@ namespace Slax.QuestSystem
         /// and the associated Quest is completed as well but the associated QuestLine
         /// is not yet completed
         /// </summary>
-        private void HandleQuestCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
+        /// <param name="questLine">The questline that the quest belongs to</param>
+        /// <param name="quest">The quest that was completed</param>
+        /// <param name="step">The step that was completed</param>
+        protected virtual void HandleQuestCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
         {
             questLine.OnProgress -= HandleQuestCompletedEvent;
             QuestEventInfo eventInfo = new QuestEventInfo(questLine, quest, step);
@@ -220,7 +252,10 @@ namespace Slax.QuestSystem
         /// holds the information for the completed QuestLine as well as what Quest and Step
         /// triggered the completion
         /// </summary>
-        private void HandleQuestLineCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
+        /// <param name="questLine">The questline that was completed</param>
+        /// <param name="quest">The quest that was completed</param>
+        /// <param name="step">The step that was completed</param>
+        protected virtual void HandleQuestLineCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
         {
             questLine.OnCompleted -= HandleQuestLineCompletedEvent;
             OnQuestLineComplete.Invoke(new QuestEventInfo(questLine, quest, step));
@@ -230,7 +265,11 @@ namespace Slax.QuestSystem
 
         #region Helpers
 
-        public QuestSO QuestFromStep(QuestStepSO questStep)
+        /// <summary>
+        /// Returns the QuestSO inside of which the QuestStepSO is found
+        /// </summary>
+        /// <param name="questStep">The quest step to look for in the available questlines</param>
+        public virtual QuestSO QuestFromStep(QuestStepSO questStep)
         {
             QuestLineSO questLine = QuestLineFromQuestStep(questStep);
             if (!questLine) throw new Exception("No QuestLine found for this Quest Step");
@@ -238,12 +277,21 @@ namespace Slax.QuestSystem
             return quest;
         }
 
-        private QuestLineSO QuestLineFromQuest(QuestSO quest) => _questLines.Find(ql => ql.Quests.Find(q => q.name == quest.name));
+        /// <summary>
+        /// Returns the QuestLineSO inside of which the QuestSO is found
+        /// </summary>
+        /// <param name="quest">The quest to look for in the available questlines</param>
+        public virtual QuestLineSO QuestLineFromQuest(QuestSO quest) => _questLines.Find(ql => ql.Quests.Find(q => q.name == quest.name));
 
-        private QuestLineSO QuestLineFromQuestStep(QuestStepSO step) => _questLines.Find(ql => ql.Quests.Find(q => q.Steps.Find(s => s.name == step.name)));
+        /// <summary>
+        /// Returns the QuestLineSO inside of which the QuestStepSO is found
+        /// </summary>
+        /// <param name="step">The quest step to look for in the available questlines</param>
+        public virtual QuestLineSO QuestLineFromQuestStep(QuestStepSO step) => _questLines.Find(ql => ql.Quests.Find(q => q.Steps.Find(s => s.name == step.name)));
 
         /// <summary>Prepares the data to be sent by Quest Manager events</summary>
-        private QuestEventInfo PrepareQuestEventInfo(QuestStepSO step)
+        /// <param name="step">The step for which the event is being prepared</param>
+        protected virtual QuestEventInfo PrepareQuestEventInfo(QuestStepSO step)
         {
             QuestLineSO questLine = QuestLineFromQuestStep(step);
             QuestSO quest = QuestFromStep(step);
@@ -257,7 +305,7 @@ namespace Slax.QuestSystem
         /// directly as List<SavedStep> depending on the set ReturnType
         /// </summary>
         [ContextMenu("Save")]
-        public dynamic CreateSaveData()
+        public virtual dynamic CreateSaveData()
         {
             SaveData save = new SaveData();
             foreach (QuestLineSO questLine in _questLines)
@@ -286,10 +334,17 @@ namespace Slax.QuestSystem
 #if UNITY_EDITOR
         #region Editor Methods
 
+        [SerializeField] protected bool _logMessages = false;
+
+        void Log(object message)
+        {
+            if (_logMessages) Debug.Log(message);
+        }
+
         public void ManualReset()
         {
             ResetAllQuests();
-            Debug.Log("Quest Manager resetted, all quests marked as not completed.");
+            Log("Quest Manager resetted, all quests marked as not completed.");
         }
 
         public void ManualSave()
@@ -299,12 +354,12 @@ namespace Slax.QuestSystem
             {
                 if (_saveType == SaveType.Internal)
                 {
-                    Debug.Log($"Saved Quests Data to {_saveFileName}");
+                    Log($"Saved Quests Data to {_saveFileName}");
                     return;
                 }
             }
 
-            Debug.Log($"Quest Manager save type not set as internal. Returning data as : {data}");
+            Log($"Quest Manager save type not set as internal. Returning data as : {data}");
         }
 
         #endregion
@@ -377,11 +432,11 @@ namespace Slax.QuestSystem
 
         public QuestEventInfo(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
         {
-            this.QuestLine = questLine;
-            this.Quest = quest;
-            this.Step = step;
-            this.IsQuestStart = quest.Steps.FindIndex(s => s.name == step.name) == 0;
-            this.IsQuestLineStart = questLine.Quests.FindIndex(q => q.name == quest.name) == 0 && this.IsQuestStart;
+            QuestLine = questLine;
+            Quest = quest;
+            Step = step;
+            IsQuestStart = quest.Steps.FindIndex(s => s.name == step.name) == 0;
+            IsQuestLineStart = questLine.Quests.FindIndex(q => q.name == quest.name) == 0 && IsQuestStart;
         }
     }
 }

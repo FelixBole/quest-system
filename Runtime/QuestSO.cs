@@ -29,7 +29,6 @@ namespace Slax.QuestSystem
         public bool Completed => !_steps.Find(step => !step.Completed);
         public bool Started => _steps.Find(step => step.Started || step.Completed);
         public Texture2D Sprite => _sprite;
-        
 
         public void Initialize()
         {

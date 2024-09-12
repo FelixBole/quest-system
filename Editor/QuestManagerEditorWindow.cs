@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using static UnityEditor.EditorGUILayout;
 
 namespace Slax.QuestSystem
 {
@@ -29,7 +30,13 @@ namespace Slax.QuestSystem
         List<string> _displayObjectsPaths;
         List<ScriptableObject> _displayObjects;
 
-        [SerializeField] private QuestManagerEditorWindowSO _editorData;
+        string _questLineAssetPath = "Assets/QuestSystem/QuestLines";
+        string _questAssetPath = "Assets/QuestSystem/Quests";
+        string _questStepAssetPath = "Assets/QuestSystem/QuestSteps";
+
+        int _lastSelectedTab = 0;
+        ScriptableObject _lastCreatedAsset;
+
         private Dictionary<BackgroundType, Texture2D> _backgrounds;
 
         int _activeQuestLineInfo;
@@ -56,49 +63,48 @@ namespace Slax.QuestSystem
 
         void OnGUI()
         {
-            _scroll = EditorGUILayout.BeginScrollView(_scroll, false, false);
+            _scroll = BeginScrollView(_scroll, false, false);
 
-            SerializedObject editorData = new SerializedObject(_editorData);
             GUILayout.Space(EditorGUIUtility.singleLineHeight * 0.5f);
-            EditorGUILayout.BeginHorizontal();
+            BeginHorizontal();
 
-            EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+            BeginVertical(GUILayout.ExpandWidth(true));
             GUILayout.Box("The Quest Manager helps create and manage all asset scriptable objects related to Quests in the project.");
-            EditorGUILayout.EndVertical();
+            EndVertical();
 
-            EditorGUILayout.BeginVertical(GUILayout.Width(50));
+            BeginVertical(GUILayout.Width(50));
             GUIContent refreshContent = new GUIContent(_refreshIcon);
             if (GUILayout.Button(refreshContent, GetSquareButtonStyle(30))) FindAllSOs();
-            EditorGUILayout.EndVertical();
+            EndVertical();
 
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.Space(15);
+            EndHorizontal();
+            Space(15);
 
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.BeginVertical("box", GUILayout.Width(130), GUILayout.ExpandHeight(true));
+            BeginHorizontal();
+            BeginVertical("box", GUILayout.Width(130), GUILayout.ExpandHeight(true));
 
             string[] tabs = { "Asset Creator", "Asset Finder", "Quest Info" };
 
             for (int i = 0; i < tabs.Length; i++)
             {
                 bool tabSelected = GUILayout.Button(tabs[i]);
-                if (tabSelected) editorData.FindProperty("LastSelectedTab").intValue = i;
+                if (tabSelected) _lastSelectedTab = i;
             }
 
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.BeginVertical("box", GUILayout.ExpandHeight(true));
-            if (_editorData.LastSelectedTab == 0)
+            EndVertical();
+            BeginVertical("box", GUILayout.ExpandHeight(true));
+            if (_lastSelectedTab == 0)
             {
-                EditorGUILayout.LabelField("Quest asset creator", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("When creating Quests it is recommended to follow the following pattern in order to keep things easy to maintain : QuestLineX_QuestX_StepX (shorter : QLX_QX_SX) where X is a number.", MessageType.Info);
-                DrawAssetCreator("QuestLine", editorData);
-                DrawAssetCreator("Quest", editorData);
-                DrawAssetCreator("QuestStep", editorData);
+                LabelField("Quest asset creator", EditorStyles.boldLabel);
+                HelpBox("When creating Quests it is recommended to follow the following pattern in order to keep things easy to maintain : QuestLineX_QuestX_StepX (shorter : QLX_QX_SX) where X is a number.", MessageType.Info);
+                DrawAssetCreator("QuestLine");
+                DrawAssetCreator("Quest");
+                DrawAssetCreator("QuestStep");
             }
-            else if (_editorData.LastSelectedTab == 1)
+            else if (_lastSelectedTab == 1)
             {
-                EditorGUILayout.LabelField("Quest asset finder", EditorStyles.boldLabel);
-                EditorGUILayout.Space(15);
+                LabelField("Quest asset finder", EditorStyles.boldLabel);
+                Space(15);
 
                 GUILayout.BeginHorizontal();
 
@@ -109,48 +115,46 @@ namespace Slax.QuestSystem
                     FindDisplaySOs();
                 }
                 GUILayout.EndHorizontal();
-                EditorGUILayout.Space(15);
-                EditorGUILayout.LabelField("__________________________________________________");
-                EditorGUILayout.Space(15);
+                Space(15);
+                LabelField("__________________________________________________");
+                Space(15);
 
                 DrawSOsList();
             }
             else
             {
-                EditorGUILayout.BeginHorizontal();
+                BeginHorizontal();
                 DrawQuestConfigs();
                 if (_activeQuestLineInfo <= _questLineObjects.Length)
                 {
-                    EditorGUILayout.BeginVertical();
+                    BeginVertical();
                     DrawSelectedQuestLineInfo();
-                    EditorGUILayout.EndVertical();
+                    EndVertical();
                 }
-                EditorGUILayout.EndHorizontal();
+                EndHorizontal();
             }
 
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.Space(15);
-            EditorGUILayout.EndScrollView();
-
-            editorData.ApplyModifiedProperties();
-            EditorUtility.SetDirty(_editorData);
+            EndVertical();
+            EndHorizontal();
+            Space(15);
+            EndScrollView();
         }
 
-        void DrawAssetCreator(string assetType, SerializedObject editorData)
+        void DrawAssetCreator(string assetType)
         {
-            EditorGUILayout.Space(15);
+            Space(15);
 
             switch (assetType)
             {
                 case "QuestLine":
-                    EditorGUILayout.PropertyField(editorData.FindProperty("QuestLineAssetPath"));
+                    // update questline in a field here
+                    _questLineAssetPath = TextField("Quest Line Asset Path", _questLineAssetPath);
                     break;
                 case "Quest":
-                    EditorGUILayout.PropertyField(editorData.FindProperty("QuestAssetPath"));
+                    _questAssetPath = TextField("Quest Asset Path", _questAssetPath);
                     break;
                 case "QuestStep":
-                    EditorGUILayout.PropertyField(editorData.FindProperty("QuestStepAssetPath"));
+                    _questStepAssetPath = TextField("Quest Step Asset Path", _questStepAssetPath);
                     break;
                 default:
                     break;
@@ -163,19 +167,19 @@ namespace Slax.QuestSystem
                 case "QuestLine":
                     if (GUILayout.Button(new GUIContent("Create Quest Line", "Creates a new Quest Line asset Scriptable Object"), GUILayout.Height(20)))
                     {
-                        createdAsset = QuestAssetCreator.CreateQuestLine(_editorData.QuestLineAssetPath);
+                        createdAsset = QuestAssetCreator.CreateQuestLine(_questLineAssetPath);
                     }
                     break;
                 case "Quest":
                     if (GUILayout.Button(new GUIContent("Create Quest", "Creates a new Quest asset Scriptable Object"), GUILayout.Height(20)))
                     {
-                        createdAsset = QuestAssetCreator.CreateQuest(_editorData.QuestAssetPath);
+                        createdAsset = QuestAssetCreator.CreateQuest(_questAssetPath);
                     }
                     break;
                 case "QuestStep":
                     if (GUILayout.Button(new GUIContent("Create Quest Step", "Creates a new Quest Step asset Scriptable Object"), GUILayout.Height(20)))
                     {
-                        createdAsset = QuestAssetCreator.CreateQuestStep(_editorData.QuestStepAssetPath);
+                        createdAsset = QuestAssetCreator.CreateQuestStep(_questStepAssetPath);
                     }
                     break;
             }
@@ -191,7 +195,7 @@ namespace Slax.QuestSystem
         void DrawSOsPicker()
         {
             EditorGUI.BeginChangeCheck();
-            _selected = EditorGUILayout.Popup(GUIContent.none, _selected, _SOTypes.ToArray());
+            _selected = Popup(GUIContent.none, _selected, _SOTypes.ToArray());
             if (EditorGUI.EndChangeCheck())
             {
                 FindDisplaySOs();
@@ -200,10 +204,10 @@ namespace Slax.QuestSystem
 
         void DrawQuestConfigs()
         {
-            EditorGUILayout.BeginVertical(GetBoxStyle(BackgroundType.QuestInfo), GUILayout.ExpandHeight(true), GUILayout.Width(250));
+            BeginVertical(GetBoxStyle(BackgroundType.QuestInfo), GUILayout.ExpandHeight(true), GUILayout.Width(250));
             if (_questLineGUIDs.Length == 0)
             {
-                EditorGUILayout.LabelField("No Quest Lines created");
+                LabelField("No Quest Lines created");
                 return;
             }
 
@@ -213,42 +217,42 @@ namespace Slax.QuestSystem
                 QuestLineSO questLine = (QuestLineSO)AssetDatabase.LoadAssetAtPath(assetPath, typeof(QuestLineSO));
                 DrawQuestLineInfo(questLine, i);
             }
-            EditorGUILayout.EndVertical();
+            EndVertical();
         }
 
         void DrawQuestLineInfo(QuestLineSO questLine, int index)
         {
             if (!questLine) return;
-            EditorGUILayout.BeginVertical(new GUIStyle(GetBoxStyle(BackgroundType.QuestLineDetails)));
-            EditorGUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+            BeginVertical(new GUIStyle(GetBoxStyle(BackgroundType.QuestLineDetails)));
+            BeginHorizontal(GUILayout.ExpandWidth(true));
             int previewSize = 60;
             GUILayout.Label(questLine.Sprite ? questLine.Sprite : new Texture2D(previewSize, previewSize), GUILayout.Width(previewSize), GUILayout.Height(previewSize));
 
-            EditorGUILayout.BeginVertical();
-            EditorGUILayout.LabelField($"{questLine.DisplayName}", EditorStyles.boldLabel);
+            BeginVertical();
+            LabelField($"{questLine.DisplayName}", EditorStyles.boldLabel);
             GUILayout.Label($"Asset: {questLine.name}");
             if (GUILayout.Button(_searchIcon, GetSquareButtonStyle(22)))
             {
                 EditorUtility.FocusProjectWindow();
                 EditorGUIUtility.PingObject(questLine);
             }
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndHorizontal();
+            EndVertical();
+            EndHorizontal();
 
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.BeginVertical();
-            EditorGUILayout.LabelField($"Quests: {questLine.Quests.Count}");
-            EditorGUILayout.LabelField($"Total Steps: {questLine.GetTotalSteps()}");
-            EditorGUILayout.EndVertical();
+            BeginHorizontal();
+            BeginVertical();
+            LabelField($"Quests: {questLine.Quests.Count}");
+            LabelField($"Total Steps: {questLine.GetTotalSteps()}");
+            EndVertical();
 
-            EditorGUILayout.BeginVertical();
+            BeginVertical();
             if (GUILayout.Button("Info"))
             {
                 _activeQuestLineInfo = index;
             }
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.EndVertical();
+            EndVertical();
+            EndHorizontal();
+            EndVertical();
         }
 
         void DrawSelectedQuestLineInfo()
@@ -259,15 +263,15 @@ namespace Slax.QuestSystem
             {
                 questLine.Quests.ForEach((quest) =>
                 {
-                    EditorGUILayout.BeginVertical("box");
-                    EditorGUILayout.LabelField($"{quest.DisplayName}", EditorStyles.boldLabel);
+                    BeginVertical("box");
+                    LabelField($"{quest.DisplayName}", EditorStyles.boldLabel);
 
                     quest.Steps.ForEach((step) =>
                     {
                         GUI.color = step.Completed ? Color.green : Color.white;
-                        EditorGUILayout.LabelField($"- {step.DisplayName}", EditorStyles.boldLabel);
+                        LabelField($"- {step.DisplayName}", EditorStyles.boldLabel);
                     });
-                    EditorGUILayout.EndVertical();
+                    EndVertical();
                     GUI.color = Color.white;
                 });
             }
@@ -279,7 +283,7 @@ namespace Slax.QuestSystem
 
             for (int i = 0; i < _displayObjectsGUIDs.Length; i++)
             {
-                EditorGUILayout.BeginHorizontal(GUILayout.Width(250));
+                BeginHorizontal(GUILayout.Width(250));
                 GUILayout.Label(i + 1 + ". " + _displayObjects[i].name);
 
                 if (GUILayout.Button(_searchIcon, GetSquareButtonStyle(27)))
@@ -287,7 +291,7 @@ namespace Slax.QuestSystem
                     EditorUtility.FocusProjectWindow();
                     EditorGUIUtility.PingObject(_displayObjects[i]);
                 }
-                EditorGUILayout.EndHorizontal();
+                EndHorizontal();
 
                 GUILayout.Space(EditorGUIUtility.singleLineHeight);
             }
@@ -295,9 +299,9 @@ namespace Slax.QuestSystem
             GUILayout.EndScrollView();
         }
 
-        string[] FindQuestLinesGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestLineSO") as string[];
-        string[] FindQuestGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestSO") as string[];
-        string[] FindQuestStepGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestStepSO") as string[];
+        string[] FindQuestLinesGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestLineSO");
+        string[] FindQuestGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestSO");
+        string[] FindQuestStepGUIDs() => AssetDatabase.FindAssets("t:Slax.QuestSystem.QuestStepSO");
 
         void FindAllSOs()
         {
@@ -386,22 +390,14 @@ namespace Slax.QuestSystem
         {
             if (_searchIcon == null)
             {
-                string path = "Scripts/Quest System/Editor/Textures/search.png";
-                _searchIcon = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/" + path, typeof(Texture2D));
-                if (_searchIcon == null)
-                {
-                    _searchIcon = (Texture2D)AssetDatabase.LoadAssetAtPath("Packages/" + path, typeof(Texture2D));
-                }
+                string path = "Packages/com.slax.questsystem/Editor/Textures/search.png";
+                _searchIcon = (Texture2D)AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D));
             }
 
             if (_refreshIcon == null)
             {
-                string path = "Scripts/Quest System/Editor/Textures/refresh.png";
-                _refreshIcon = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/" + path, typeof(Texture2D));
-                if (_refreshIcon == null)
-                {
-                    _refreshIcon = (Texture2D)AssetDatabase.LoadAssetAtPath("Packages/" + path, typeof(Texture2D));
-                }
+                string path = "Packages/com.slax.questsystem/Editor/Textures/refresh.png";
+                _refreshIcon = (Texture2D)AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D));
             }
         }
 
