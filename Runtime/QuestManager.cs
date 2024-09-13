@@ -19,6 +19,8 @@ namespace Slax.QuestSystem
         [SerializeField] protected ReturnType _returnType;
         [SerializeField] protected string _saveFileName = "quests.savegame";
 
+        [SerializeField] protected bool _grantRewards = true;
+
         public SaveType SaveType => _saveType;
         public ReturnType ReturnType => _returnType;
 
@@ -34,7 +36,8 @@ namespace Slax.QuestSystem
         public UnityAction<QuestEventInfo> OnStepComplete = delegate { };
 
         /// <summary>
-        /// Event fired when a step is completed, completing the associated Quest and QuestLine with it
+        /// Event fired when a step is completed, completing the associated Quest
+        /// but not the QuestLine
         /// </summary>
         public UnityAction<QuestEventInfo> OnQuestComplete = delegate { };
 
@@ -46,7 +49,17 @@ namespace Slax.QuestSystem
         /// <summary>
         /// Event fired when a step is started but there are some missing step requirements
         /// </summary>
-        public UnityAction<List<QuestEventInfo>> OnMissingRequirements = delegate { };
+        public UnityAction<QuestEventInfo> OnMissingRequirements = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is started but there are some missing step requirements
+        /// </summary>
+        public UnityAction<QuestEventInfo> OnStepStartConditionsNotMet = delegate { };
+
+        /// <summary>
+        /// Event fired when a step is started but there are some missing step requirements
+        /// </summary>
+        public UnityAction<QuestEventInfo> OnStepCompleteConditionsNotMet = delegate { };
 
         /// <summary>
         /// Singleton instance of the QuestManager
@@ -85,16 +98,7 @@ namespace Slax.QuestSystem
         }
         protected virtual void OnDisable()
         {
-            foreach (QuestLineSO questLine in _questLines)
-            {
-                questLine.OnCompleted -= HandleQuestLineCompletedEvent;
-                questLine.OnProgress -= HandleQuestCompletedEvent;
-
-                foreach (QuestSO quest in questLine.Quests)
-                {
-                    quest.OnProgress -= HandleStepCompletedEvent;
-                }
-            }
+            UnsuscribeFromQuestEvents();
         }
 
         #endregion
@@ -138,6 +142,12 @@ namespace Slax.QuestSystem
             SubscribeToQuestEvents();
         }
 
+        public QuestManager SetGrantRewards(bool grantRewards)
+        {
+            _grantRewards = grantRewards;
+            return this;
+        }
+
         /// <summary>Subscribes to essential events fired by quests and questlines</summary>
         protected virtual void SubscribeToQuestEvents()
         {
@@ -157,9 +167,39 @@ namespace Slax.QuestSystem
 
                     foreach (QuestStepSO step in quest.Steps)
                     {
-                        if (step.State != StepState.NotStarted) continue;
-                        step.OnStarted += HandleStepStartEvent;
-                        step.OnMissingRequirements += HandleMissingRequirementsEvent;
+                        if (step.State == StepState.NotStarted)
+                        {
+                            step.OnStarted += HandleStepStartEvent;
+                            step.OnMissingRequirements += HandleStepRequirementsNotMetEvent;
+                            step.OnStartConditionsNotMet += HandleStepStartConditionsNotMetEvent;
+                        }
+
+                        if (step.State == StepState.Started)
+                        {
+                            step.OnCompleteConditionsNotMet += HandleStepCompleteConditionsNotMetEvent;
+                        }
+                    }
+                }
+            }
+        }
+
+        protected virtual void UnsuscribeFromQuestEvents()
+        {
+            foreach (QuestLineSO questLine in _questLines)
+            {
+                questLine.OnCompleted -= HandleQuestLineCompletedEvent;
+                questLine.OnProgress -= HandleQuestCompletedEvent;
+
+                foreach (QuestSO quest in questLine.Quests)
+                {
+                    quest.OnProgress -= HandleStepCompletedEvent;
+
+                    foreach (QuestStepSO step in quest.Steps)
+                    {
+                        step.OnStarted -= HandleStepStartEvent;
+                        step.OnMissingRequirements -= HandleStepRequirementsNotMetEvent;
+                        step.OnStartConditionsNotMet -= HandleStepStartConditionsNotMetEvent;
+                        step.OnCompleteConditionsNotMet -= HandleStepCompleteConditionsNotMetEvent;
                     }
                 }
             }
@@ -187,20 +227,45 @@ namespace Slax.QuestSystem
         #region Quest Events
 
         ///<summary>
-        ///Handles the event fired from a Step when the step
-        /// attemps to start but there are some missing step
-        /// requirements.
+        /// Handles the event fired from a Step when the step attemps to start but there 
+        /// are some missing step requirements.
         ///</summary>
         ///<param name="requirements">The list of requirements that are missing</param>
-        protected virtual void HandleMissingRequirementsEvent(List<QuestStepSO> requirements)
+        protected virtual void HandleStepRequirementsNotMetEvent(QuestStepSO notifier, List<QuestStepSO> requirements)
         {
-            List<QuestEventInfo> eventInfoRequirements = new List<QuestEventInfo>();
-            foreach (QuestStepSO requirement in requirements)
-            {
-                requirement.OnMissingRequirements -= HandleMissingRequirementsEvent;
-                eventInfoRequirements.Add(PrepareQuestEventInfo(requirement));
-            }
-            OnMissingRequirements.Invoke(eventInfoRequirements);
+            QuestEventInfo eventInfo = PrepareQuestEventInfo(notifier);
+            eventInfo.Requirements = requirements;
+            eventInfo.ConditionType = QuestEventInfo.ConditionNotMetType.StepRequirements;
+            OnMissingRequirements.Invoke(eventInfo);
+        }
+
+
+        ///<summary>
+        /// Handles the event fired from a Step when the step attemps to start but there
+        /// are some missing step start conditions.
+        /// </summary>
+        /// <param name="step">The step that was started</param>
+        /// <param name="conditions">The list of conditions that were not met</param>
+        protected virtual void HandleStepStartConditionsNotMetEvent(QuestStepSO step, List<IQuestCondition> conditions)
+        {
+            QuestEventInfo eventInfo = PrepareQuestEventInfo(step);
+            eventInfo.Conditions = conditions;
+            eventInfo.ConditionType = QuestEventInfo.ConditionNotMetType.StepStartConditions;
+            OnStepStartConditionsNotMet.Invoke(eventInfo);
+        }
+
+        /// <summary>
+        /// Handles the event fired from a Step when the step attemps to complete but there
+        /// are some missing step complete conditions.
+        /// </summary>
+        /// <param name="step">The step that was completed</param>
+        /// <param name="conditions">The list of conditions that were not met</param>
+        protected virtual void HandleStepCompleteConditionsNotMetEvent(QuestStepSO step, List<IQuestCondition> conditions)
+        {
+            QuestEventInfo eventInfo = PrepareQuestEventInfo(step);
+            eventInfo.Conditions = conditions;
+            eventInfo.ConditionType = QuestEventInfo.ConditionNotMetType.StepCompleteConditions;
+            OnStepCompleteConditionsNotMet.Invoke(eventInfo);
         }
 
         /// <summary>
@@ -226,6 +291,15 @@ namespace Slax.QuestSystem
         protected virtual void HandleStepCompletedEvent(QuestSO quest, QuestStepSO step)
         {
             quest.OnProgress -= HandleStepCompletedEvent;
+
+            if (_grantRewards)
+            {
+                foreach (IQuestReward reward in step.Rewards)
+                {
+                    reward.GrantReward();
+                }
+            }
+
             QuestEventInfo eventInfo = PrepareQuestEventInfo(step);
             OnStepComplete.Invoke(eventInfo);
         }
@@ -241,6 +315,22 @@ namespace Slax.QuestSystem
         protected virtual void HandleQuestCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
         {
             questLine.OnProgress -= HandleQuestCompletedEvent;
+
+            if (_grantRewards)
+            {
+                // We also grant the rewards for step here because the
+                // step completion event is not fired when the quest is completed
+                foreach (IQuestReward reward in step.Rewards)
+                {
+                    reward.GrantReward();
+                }
+
+                foreach (IQuestReward reward in quest.Rewards)
+                {
+                    reward.GrantReward();
+                }
+            }
+
             QuestEventInfo eventInfo = new QuestEventInfo(questLine, quest, step);
             OnQuestComplete.Invoke(eventInfo);
         }
@@ -258,6 +348,28 @@ namespace Slax.QuestSystem
         protected virtual void HandleQuestLineCompletedEvent(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
         {
             questLine.OnCompleted -= HandleQuestLineCompletedEvent;
+
+            if (_grantRewards)
+            {
+                // We also grant the rewards for step and quest here because the
+                // step / quest completion events are not fired when the questline
+                // is completed.
+                foreach (IQuestReward reward in step.Rewards)
+                {
+                    reward.GrantReward();
+                }
+
+                foreach (IQuestReward reward in quest.Rewards)
+                {
+                    reward.GrantReward();
+                }
+
+                foreach (IQuestReward reward in questLine.Rewards)
+                {
+                    reward.GrantReward();
+                }
+            }
+
             OnQuestLineComplete.Invoke(new QuestEventInfo(questLine, quest, step));
         }
 
@@ -419,24 +531,54 @@ namespace Slax.QuestSystem
     /// </summary>
     public struct QuestEventInfo
     {
+        /// <summary>
+        /// The type of condition that was not met, set to None if it isn't an event
+        /// for conditions that were not met.
+        /// </summary>
+        public enum ConditionNotMetType
+        {
+            None,
+            StepRequirements,
+            StepStartConditions,
+            StepCompleteConditions,
+        }
+
+        /// <summary>The type of condition that was not met</summary>
+        public ConditionNotMetType ConditionType;
+
         /// <summary>The current questline</summary>
         public QuestLineSO QuestLine;
+
         /// <summary>The current quest for which the event was sent</summary>
         public QuestSO Quest;
+
         /// <summary>The current step for which the event was sent</summary>
         public QuestStepSO Step;
+
         /// <summary>If the step validated was the first step, meaning the quest just started</summary>
         public bool IsQuestStart;
+
         /// <summary>If the step validated was the first step of the quest & of the first quest of the questline</summary>
         public bool IsQuestLineStart;
 
-        public QuestEventInfo(QuestLineSO questLine, QuestSO quest, QuestStepSO step)
+        /// <summary>The list of conditions that were not met for the step to start / complete</summary>
+        public List<IQuestCondition> Conditions;
+
+        /// <summary>
+        /// The list of step completion requirements that were not met for the step to start
+        /// </summary>
+        public List<QuestStepSO> Requirements;
+
+        public QuestEventInfo(QuestLineSO questLine, QuestSO quest, QuestStepSO step, ConditionNotMetType conditionType = ConditionNotMetType.None)
         {
             QuestLine = questLine;
             Quest = quest;
             Step = step;
             IsQuestStart = quest.Steps.FindIndex(s => s.name == step.name) == 0;
             IsQuestLineStart = questLine.Quests.FindIndex(q => q.name == quest.name) == 0 && IsQuestStart;
+            ConditionType = conditionType;
+            Conditions = new List<IQuestCondition>();
+            Requirements = new List<QuestStepSO>();
         }
     }
 }

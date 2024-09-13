@@ -53,6 +53,12 @@ namespace Slax.QuestSystem
         /// </summary>
         public void StartStep()
         {
+            if (_questStep == null)
+            {
+                Debug.LogError("No Quest Step assigned to this Quest Point");
+                return;
+            }
+
             if (Started)
             {
                 OnStepAlreadyStarted.Invoke(_questStep);
@@ -72,6 +78,12 @@ namespace Slax.QuestSystem
         /// </summary>
         public void CompleteStep(bool skipStartCheck = false)
         {
+            if (_questStep == null)
+            {
+                Debug.LogError("No Quest Step assigned to this Quest Point");
+                return;
+            }
+
             if (!skipStartCheck && !Started)
             {
                 StartStep();

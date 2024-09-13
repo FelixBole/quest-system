@@ -11,13 +11,33 @@ namespace Slax.QuestSystem
     public class QuestLineSO : ScriptableObject
     {
         [Tooltip("The name of the Quest Line")]
-        [SerializeField] private string _name = "QL0";
+        [SerializeField] protected string _name = "QL0";
         [Tooltip("List of quests")]
-        [SerializeField] private List<QuestSO> _quests = new List<QuestSO>();
-        [SerializeField] private Texture2D _sprite;
+        [SerializeField] protected List<QuestSO> _quests = new List<QuestSO>();
+        [SerializeField] protected Texture2D _sprite;
+
+        [Header("Rewards")]
+        [SerializeField] protected List<IQuestReward> _rewards = new List<IQuestReward>();
+        
+        /// <summary>
+        /// List of rewards for the quest line. If the QuestManager is set to
+        /// grant rewards automatically, the QuestManager will grant these rewards
+        /// when the quest line is completed. Otherwise, these rewards can still
+        /// be accessed on the QuestEventInfo event fired when the quest line is
+        /// completed.
+        /// </summary>
+        public List<IQuestReward> Rewards => _rewards;
+
+        /// <summary>
+        /// Event fired when the quest line is completed for the QuestManager to handle.
+        /// </summary>
         public UnityAction<QuestLineSO, QuestSO, QuestStepSO> OnCompleted = delegate { };
+
+        /// <summary>
+        /// Event fired when the quest line is in progress for the QuestManager to handle.
+        /// </summary>
         public UnityAction<QuestLineSO, QuestSO, QuestStepSO> OnProgress = delegate { };
-        private bool _completed = false;
+        protected bool _completed = false;
         public string DisplayName => _name;
         public List<QuestSO> Quests => _quests;
         public bool Completed => _completed;
@@ -56,18 +76,18 @@ namespace Slax.QuestSystem
         }
 
         /// <summary>Checks if all quests in the questline are completed</summary>
-        private bool AllQuestsCompleted()
+        protected bool AllQuestsCompleted()
         {
             return !_quests.Find((QuestSO quest) => quest.Completed == false);
         }
 
-        private bool AllQuestsCompleted(List<QuestSO> quests)
+        protected bool AllQuestsCompleted(List<QuestSO> quests)
         {
             return !quests.Find((QuestSO quest) => quest.Completed == false);
         }
 
         /// <summary>Handles the event fired by a quest when it's completed</summary>
-        private void HandleQuestCompletedEvent(QuestSO quest, QuestStepSO step)
+        protected void HandleQuestCompletedEvent(QuestSO quest, QuestStepSO step)
         {
             quest.OnCompleted -= HandleQuestCompletedEvent;
             if (AllQuestsCompleted()) OnCompleted.Invoke(this, quest, step);

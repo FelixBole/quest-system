@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -14,20 +13,50 @@ namespace Slax.QuestSystem
     [System.Serializable]
     public class QuestSO : ScriptableObject
     {
-        [SerializeField] private string _name = "QL0_Q0";
+        [SerializeField] protected string _name = "QL0_Q0";
         [TextArea]
-        [SerializeField] private string _description;
-        [SerializeField] private List<QuestStepSO> _steps;
-        [SerializeField] private Texture2D _sprite;
+        [SerializeField] protected string _description;
+        [SerializeField] protected List<QuestStepSO> _steps;
+        [SerializeField] protected Texture2D _sprite;
 
+        [Header("Rewards")]
+        [SerializeField] protected List<IQuestReward> _rewards = new List<IQuestReward>();
+
+        /// <summary>
+        /// List of rewards for the quest. If the QuestManager is set to
+        /// grant rewards automatically, the QuestManager will grant these 
+        /// rewards when the quest is completed. Otherwise, these rewards can
+        /// be accessed on the QuestEventInfo event fired when the line is
+        /// is completed.
+        /// </summary>
+        public List<IQuestReward> Rewards => _rewards;
+
+        /// <summary>
+        /// Event fired when the quest is completed for the QuestLineSO to handle.
+        /// 
+        /// <para>
+        /// The QuestManager does not listen to this event as the QuestLineSO acts
+        /// as the event relayer after updating itself with the new completion state
+        /// of the quest. It will determine if the quest line is completed and fire
+        /// the appropriate event for the QuestManager to handle.
+        /// </para>
+        /// </summary>
         public UnityAction<QuestSO, QuestStepSO> OnCompleted = delegate { };
+
+        /// <summary>
+        /// Event fired when the quest is in progress for the QuestManager to handle.
+        /// 
+        /// <para>
+        /// The QuestLine does not need to listen to this event as if the quest is
+        /// simply in progress, the QuestLine is not completed.
+        /// </para>
+        /// </summary>
         public UnityAction<QuestSO, QuestStepSO> OnProgress = delegate { };
 
         public string DisplayName => _name;
         public string Description => _description;
         public List<QuestStepSO> Steps => _steps;
         public bool Completed => !_steps.Find(step => !step.Completed);
-        public bool Started => _steps.Find(step => step.Started || step.Completed);
         public Texture2D Sprite => _sprite;
 
         public void Initialize()
@@ -70,13 +99,13 @@ namespace Slax.QuestSystem
         /// further verify questline completion. Otherwise, the quest progress event is
         /// fired for the Quest Manager to read and process.
         /// </summary>
-        private void HandleStepCompletedEvent(QuestStepSO step)
+        protected void HandleStepCompletedEvent(QuestStepSO step)
         {
+            // Unsubscribe from the step completion event
             step.OnCompleted -= HandleStepCompletedEvent;
-            // Check quest completion
+
             if (Completed) OnCompleted.Invoke(this, step);
             else OnProgress.Invoke(this, step);
         }
     }
-
 }
