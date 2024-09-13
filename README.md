@@ -113,7 +113,18 @@ Each _layer_ has its own set of public Events that any subscriber can listen to.
 
 The QuestManager can be seen as an event relayer in which it provides the QuestEventInfo struct to every event it fires. Most events fired allow the QuestEventInfo to contain the following information.
 
-**QuestEventInfo Struct** | Property | Description | | -------- | -------- | | QuestLine | The QuestLine concerned by the event. | | Quest | The Quest concerned by the event. | | Step | The Quest Step concerned by the event. | | IsQuestStart | If it is an event for a new quest. | | IsQuestLineStart | If it is an event for a new quest line. | | ConditionType | Only included on an event about missing requirements / conditions, sets what type of condition failed. | | Conditions | On a conditions failed event, this will not be empty and contain the List of IQuestCondition that failed. | | Requirements | On a missing requirements event, will contain the list of QuestStepSO requirements that were not completed. |
+**QuestEventInfo Struct**
+
+| Property | Description |
+| --- | --- |
+| QuestLine | The QuestLine concerned by the event. |
+| Quest | The Quest concerned by the event. |
+| Step | The Quest Step concerned by the event. |
+| IsQuestStart | If it is an event for a new quest. |
+| IsQuestLineStart | If it is an event for a new quest line. |
+| ConditionType | Only included on an event about missing requirements / conditions, sets what type of condition failed. |
+| Conditions | On a conditions failed event, this will not be empty and contain the List of IQuestCondition that failed. |
+| Requirements | On a missing requirements event, will contain the list of QuestStepSO requirements that were not completed. |
 
 #### Events providing QuestEventInfo
 
