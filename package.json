@@ -1,6 +1,6 @@
 {
   "name": "com.slax.questsystem",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "displayName": "Quest System",
   "description": "A customizable Quest System framework",
   "unity": "2019.1",
