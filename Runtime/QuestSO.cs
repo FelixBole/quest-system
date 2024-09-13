@@ -72,7 +72,21 @@ namespace Slax.QuestSystem
             }
         }
 
+        public QuestSO SetSteps(List<QuestStepSO> steps)
+        {
+            UnsubscribeFromSteps();
+            _steps = steps;
+            Initialize();
+            return this;
+        }
+
         public int GetStepIndex(QuestStepSO step) => _steps.FindIndex(s => s.name == step.name);
+
+        public QuestStepSO GetStep(int index) => _steps[index];
+        public QuestStepSO GetStep(string name) => _steps.Find(s => s.name == name);
+
+        public QuestStepSO GetFirstStep() => _steps[0];
+        public QuestStepSO GetLastStep() => _steps[_steps.Count - 1];
 
         /// <summary>
         /// Verifies if all the previous steps from the given steps
@@ -106,6 +120,14 @@ namespace Slax.QuestSystem
 
             if (Completed) OnCompleted.Invoke(this, step);
             else OnProgress.Invoke(this, step);
+        }
+
+        protected void UnsubscribeFromSteps()
+        {
+            foreach (QuestStepSO step in _steps)
+            {
+                step.OnCompleted -= HandleStepCompletedEvent;
+            }
         }
     }
 }

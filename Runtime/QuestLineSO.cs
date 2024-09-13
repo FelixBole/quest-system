@@ -18,7 +18,7 @@ namespace Slax.QuestSystem
 
         [Header("Rewards")]
         [SerializeField] protected List<IQuestReward> _rewards = new List<IQuestReward>();
-        
+
         /// <summary>
         /// List of rewards for the quest line. If the QuestManager is set to
         /// grant rewards automatically, the QuestManager will grant these rewards
@@ -65,6 +65,29 @@ namespace Slax.QuestSystem
             }
         }
 
+        public QuestLineSO SetQuests(List<QuestSO> quests)
+        {
+            UnsuscribeFromQuests();
+            _quests = quests;
+            Initialize();
+            return this;
+        }
+
+        public QuestSO GetQuest(string questName)
+        {
+            return _quests.Find((QuestSO quest) => quest.DisplayName == questName);
+        }
+
+        public QuestSO GetQuest(int index) => _quests[index];
+
+        public int GetQuestIndex(QuestSO quest)
+        {
+            return _quests.FindIndex((QuestSO q) => q.DisplayName == quest.DisplayName);
+        }
+
+        public QuestSO GetFirstQuest() => _quests[0];
+        public QuestSO GetLastQuest() => _quests[_quests.Count - 1];
+
         public int GetTotalSteps()
         {
             int total = 0;
@@ -92,6 +115,14 @@ namespace Slax.QuestSystem
             quest.OnCompleted -= HandleQuestCompletedEvent;
             if (AllQuestsCompleted()) OnCompleted.Invoke(this, quest, step);
             else OnProgress.Invoke(this, quest, step);
+        }
+
+        protected void UnsuscribeFromQuests()
+        {
+            foreach (QuestSO quest in _quests)
+            {
+                quest.OnCompleted -= HandleQuestCompletedEvent;
+            }
         }
     }
 }

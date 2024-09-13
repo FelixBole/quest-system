@@ -90,11 +90,11 @@ For instance, take the following example:
 ```C#
 // If my last step of my first quest from QuestLineA is completed, then the quest is completed
 
-var questStep = QuestLineA.Quests[0].Steps[Quests[2]]; // The last step in question
+var questStep = QuestLineA.GetFirstQuest().GetLastStep(); // The last step in question
 
 // If we set this last step to be a requirement for QuestLineB to start, we can set it as the
 // very first requirement of the first step of the questline
-QuestLineB.Quests[0].Steps[0].SetRequirements(new List<QuestStepSO>(questStep));
+QuestLineB.Quests.GetFirstStep().SetRequirements(new List<QuestStepSO>(questStep));
 ```
 
 > Of course this is easier to do by drag & dropping elements around in the inspector. This was to show how it's possible through scripting, as shown in this example.
