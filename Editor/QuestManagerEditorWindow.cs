@@ -226,7 +226,7 @@ namespace Slax.QuestSystem
             BeginVertical(new GUIStyle(GetBoxStyle(BackgroundType.QuestLineDetails)));
             BeginHorizontal(GUILayout.ExpandWidth(true));
             int previewSize = 60;
-            GUILayout.Label(questLine.Sprite ? questLine.Sprite : new Texture2D(previewSize, previewSize), GUILayout.Width(previewSize), GUILayout.Height(previewSize));
+            GUILayout.Label(questLine.Sprite.texture ? questLine.Sprite.texture : new Texture2D(previewSize, previewSize), GUILayout.Width(previewSize), GUILayout.Height(previewSize));
 
             BeginVertical();
             LabelField($"{questLine.DisplayName}", EditorStyles.boldLabel);
@@ -342,6 +342,8 @@ namespace Slax.QuestSystem
             {
                 _displayObjectsPaths.Clear();
             }
+
+            if (_SOTypes.Count == 0) return;
 
             string type = _SOTypes[_selected];
             string queryString = "t:" + type;

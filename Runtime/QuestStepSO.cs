@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Localization;
 
 namespace Slax.QuestSystem
 {
@@ -13,7 +14,16 @@ namespace Slax.QuestSystem
     [CreateAssetMenu(menuName = "Slax/QuestSystem/QuestStep", fileName = "QL0_Q0_S0")]
     public class QuestStepSO : ScriptableObject
     {
+        [Header("Settings")]
+        [SerializeField] protected bool _useLocalization = false;
+
+        [Header("Quest Step Info")]
         [SerializeField] protected string _name = "QL0_Q0_S0";
+        [SerializeField] protected LocalizedString _localizedName;
+        [SerializeField, TextArea] protected string _description = "Quest Step 0";
+        [SerializeField] protected LocalizedString _localizedDescription;
+        [SerializeField] protected Sprite _sprite;
+        [SerializeField] protected LocalizedSprite _localizedSprite;
         [SerializeField] protected StepState _state = StepState.NotStarted;
 
         [Header("Requirements & Conditions")]
@@ -83,7 +93,9 @@ namespace Slax.QuestSystem
         /// </summary>
         public UnityAction<QuestStepSO, List<IQuestCondition>> OnCompleteConditionsNotMet = delegate { };
 
-        public string DisplayName => _name;
+        public string DisplayName => _useLocalization ? _localizedName.GetLocalizedString() : _name;
+        public string Description => _useLocalization ? _localizedDescription.GetLocalizedString() : _description;
+        public Sprite Sprite => _useLocalization ? _localizedSprite.LoadAsset() : _sprite;
         public StepState State => _state;
         public bool Started => _state == StepState.Started;
         public bool Completed => _state == StepState.Completed;

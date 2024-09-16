@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Localization;
 
 namespace Slax.QuestSystem
 {
@@ -13,11 +14,19 @@ namespace Slax.QuestSystem
     [System.Serializable]
     public class QuestSO : ScriptableObject
     {
+        [Header("Settings")]
+        [SerializeField] protected bool _useLocalization = false;
+
+        [Tooltip("The name & description of the quest")]
         [SerializeField] protected string _name = "QL0_Q0";
-        [TextArea]
-        [SerializeField] protected string _description;
+        [SerializeField] protected LocalizedString _localizedName;
+        [SerializeField, TextArea] protected string _description = "Quest 0";
+        [SerializeField] protected LocalizedString _localizedDescription;
+        [SerializeField] protected Sprite _sprite;
+        [SerializeField] protected LocalizedSprite _localizedSprite;
+
+        [Header("Quest Steps")]
         [SerializeField] protected List<QuestStepSO> _steps;
-        [SerializeField] protected Texture2D _sprite;
 
         [Header("Rewards")]
         [SerializeField] protected List<IQuestReward> _rewards = new List<IQuestReward>();
@@ -53,11 +62,11 @@ namespace Slax.QuestSystem
         /// </summary>
         public UnityAction<QuestSO, QuestStepSO> OnProgress = delegate { };
 
-        public string DisplayName => _name;
-        public string Description => _description;
+        public string DisplayName => _useLocalization ? _localizedName.GetLocalizedString() : _name;
+        public string Description => _useLocalization ? _localizedDescription.GetLocalizedString() : _description;
+        public Sprite Sprite => _useLocalization ? _localizedSprite.LoadAsset() : _sprite;
         public List<QuestStepSO> Steps => _steps;
         public bool Completed => !_steps.Find(step => !step.Completed);
-        public Texture2D Sprite => _sprite;
 
         public void Initialize()
         {

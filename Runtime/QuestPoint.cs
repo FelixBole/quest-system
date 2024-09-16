@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -10,9 +11,9 @@ namespace Slax.QuestSystem
     public class QuestPoint : MonoBehaviour
     {
         [Header("Data")]
-        [SerializeField] private QuestStepSO _questStep = null;
-        public bool Started => _questStep.Started;
-        public bool Completed => _questStep.Completed;
+        [SerializeField] protected List<QuestStepSO> _questSteps = new List<QuestStepSO>();
+
+        protected QuestStepSO _currentStep;
 
         [Header("Events")]
         /// <summary>
@@ -53,20 +54,38 @@ namespace Slax.QuestSystem
         /// </summary>
         public void StartStep()
         {
-            if (_questStep == null)
+            // Find the first available quest step
+            QuestStepSO step = _questSteps.Find(step => !step.Completed);
+
+            Debug.Log("Starting Step " + step.name);
+
+            if (step == null)
             {
                 Debug.LogError("No Quest Step assigned to this Quest Point");
                 return;
             }
 
-            if (Started)
+            _currentStep = step;
+
+            if (step.StartStep())
             {
-                OnStepAlreadyStarted.Invoke(_questStep);
+                OnStepStarted.Invoke(step);
+            }
+        }
+
+        public void StartSpecificStep(QuestStepSO step)
+        {
+            if (!_questSteps.Contains(step))
+            {
+                Debug.LogError("Quest Step not assigned to this Quest Point");
                 return;
             }
-            if (_questStep.StartStep())
+
+            _currentStep = step;
+
+            if (step.StartStep())
             {
-                OnStepStarted.Invoke(_questStep);
+                OnStepStarted.Invoke(step);
             }
         }
 
@@ -76,27 +95,27 @@ namespace Slax.QuestSystem
         /// it launch the Quest Manager step validation pipeline resulting in the Quest Manager 
         /// firing the full QuestEventInfo
         /// </summary>
-        public void CompleteStep(bool skipStartCheck = false)
+        public void CompleteStep()
         {
-            if (_questStep == null)
+            if (_currentStep == null)
             {
                 Debug.LogError("No Quest Step assigned to this Quest Point");
                 return;
             }
 
-            if (!skipStartCheck && !Started)
+            if (!_currentStep.Started)
             {
-                StartStep();
+                Debug.LogWarning("Quest Step not started yet, cannot complete it.");
                 return;
             }
 
-            if (Completed)
+            if (_currentStep.Completed)
             {
-                OnStepAlreadyValidated.Invoke(_questStep);
+                OnStepAlreadyValidated.Invoke(_currentStep);
                 return;
             }
-            else OnStepValidated.Invoke(_questStep);
-            _questStep.CompleteStep();
+            else OnStepValidated.Invoke(_currentStep);
+            _currentStep.CompleteStep();
         }
     }
 }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Localization;
 
 namespace Slax.QuestSystem
 {
@@ -10,11 +11,19 @@ namespace Slax.QuestSystem
     [System.Serializable]
     public class QuestLineSO : ScriptableObject
     {
-        [Tooltip("The name of the Quest Line")]
+        [Header("Settings")]
+        [SerializeField] protected bool _useLocalization = false;
+
+        [Tooltip("Questline info")]
         [SerializeField] protected string _name = "QL0";
+        [SerializeField] protected LocalizedString _localizedName;
+        [SerializeField] protected string _description = "Quest Line 0";
+        [SerializeField] protected LocalizedString _localizedDescription;
+        [SerializeField] protected Sprite _sprite;
+        [SerializeField] protected LocalizedSprite _localizedSprite;
+
         [Tooltip("List of quests")]
         [SerializeField] protected List<QuestSO> _quests = new List<QuestSO>();
-        [SerializeField] protected Texture2D _sprite;
 
         [Header("Rewards")]
         [SerializeField] protected List<IQuestReward> _rewards = new List<IQuestReward>();
@@ -38,10 +47,11 @@ namespace Slax.QuestSystem
         /// </summary>
         public UnityAction<QuestLineSO, QuestSO, QuestStepSO> OnProgress = delegate { };
         protected bool _completed = false;
-        public string DisplayName => _name;
+        public string DisplayName => _useLocalization ? _localizedName.GetLocalizedString() : _name;
+        public string Description => _useLocalization ? _localizedDescription.GetLocalizedString() : _description;
+        public Sprite Sprite => _useLocalization ? _localizedSprite.LoadAsset() : _sprite;
         public List<QuestSO> Quests => _quests;
         public bool Completed => _completed;
-        public Texture2D Sprite => _sprite;
 
         /// <summary>
         /// Should take in some QuestLine data from the save system or other and setup the completion state
@@ -63,6 +73,36 @@ namespace Slax.QuestSystem
                     quest.Initialize();
                 }
             }
+        }
+
+        public QuestLineSO SetUseLocalization(bool useLocalization)
+        {
+            _useLocalization = useLocalization;
+            return this;
+        }
+
+        public QuestLineSO SetName(string name)
+        {
+            _name = name;
+            return this;
+        }
+
+        public QuestLineSO SetLocalizedName(LocalizedString localizedName)
+        {
+            _localizedName = localizedName;
+            return this;
+        }
+
+        public QuestLineSO SetDescription(string description)
+        {
+            _description = description;
+            return this;
+        }
+
+        public QuestLineSO SetLocalizedDescription(LocalizedString localizedDescription)
+        {
+            _localizedDescription = localizedDescription;
+            return this;
         }
 
         public QuestLineSO SetQuests(List<QuestSO> quests)

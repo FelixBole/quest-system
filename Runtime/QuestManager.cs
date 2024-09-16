@@ -448,7 +448,7 @@ namespace Slax.QuestSystem
 
         [SerializeField] protected bool _logMessages = false;
 
-        void Log(object message)
+        protected void Log(object message)
         {
             if (_logMessages) Debug.Log(message);
         }
